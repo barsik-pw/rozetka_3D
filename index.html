@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Управление умной розеткой</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: background 0.5s;
+        }
+
+        .dark-theme {
+            background: linear-gradient(135deg, #2c3e50 0%, #4a235a 100%);
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .dark-theme .container {
+            background: rgba(30, 30, 40, 0.95);
+            color: #fff;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .dark-theme h1 {
+            color: #fff;
+        }
+
+        .status-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .dark-theme .status-card {
+            background: #2a2a3a;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px 0;
+        }
+
+        .status-label {
+            font-size: 14px;
+            color: #666;
+            text-align: left;
+        }
+
+        .dark-theme .status-label {
+            color: #aaa;
+        }
+
+        .status-value {
+            font-size: 16px;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .online {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+
+        .offline {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .relay-on {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+
+        .relay-off {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .time-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+
+        .dark-theme .time-item {
+            background: #3a3a4a;
+        }
+
+        .time-value {
+            font-family: 'Courier New', monospace;
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-top: 5px;
+        }
+
+        .dark-theme .time-value {
+            color: #fff;
+        }
+
+        .relay-button {
+            width: 100%;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 15px 0;
+            color: white;
+        }
+
+        .relay-button.on {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        }
+
+        .relay-button.off {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .relay-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .theme-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .dark-theme .theme-button {
+            background: rgba(30, 30, 40, 0.9);
+            color: #fff;
+        }
+
+        .connection-info {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .dark-theme .connection-info {
+            background: #3a3a4a;
+            color: #aaa;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .online-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #2ecc71;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .offline-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #e74c3c;
+            margin-right: 8px;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            .relay-button {
+                padding: 16px;
+                font-size: 16px;
+            }
+            
+            .theme-button {
+                top: 15px;
+                right: 15px;
+                width: 40px;
+                height: 40px;
+            }
+        }
+        
+        .update-time {
+            font-size: 11px;
+            color: #888;
+            margin-top: 3px;
+        }
+        
+        .refresh-button {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ Умная розетка</h1>
+        
+        <div class="status-card">
+            <div class="status-row">
+                <div class="status-label">Статус устройства:</div>
+                <div class="status-value">
+                    <span id="statusDot" class="offline-dot"></span>
+                    <span id="statusText">Проверка...</span>
+                </div>
+            </div>
+            
+            <div class="status-row">
+                <div class="status-label">Состояние розетки:</div>
+                <div class="status-value" id="relayStatus">--</div>
+            </div>
+            
+            <div class="time-item">
+                <div class="status-label">Текущая сессия:</div>
+                <div class="time-value" id="currentSession">00:00:00</div>
+            </div>
+        </div>
+
+        <button id="toggleRelay" class="relay-button off" disabled>Загрузка...</button>
+        
+        <div class="connection-info">
+            <div id="deviceIp">IP: загрузка...</div>
+            <div>Обновлено: <span id="lastUpdate">--</span></div>
+            <div class="update-time">Время работы устройства: <span id="deviceUptime">0</span> сек</div>
+            <button id="forceRefresh" class="refresh-button">Обновить статус</button>
+        </div>
+    </div>
+
+    <button id="themeToggle" class="theme-button">🌙</button>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script>
+        // Конфигурация Firebase
+        const firebaseConfig = {
+            databaseURL: "https://svetbudilnik-default-rtdb.firebaseio.com"
+        };
+
+        // Инициализация Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Глобальные переменные
+        let isDeviceOnline = false;
+        let isRelayOn = false;
+        let lastDeviceUptime = 0; // Последнее полученное время работы устройства
+        let lastUpdateTime = 0; // Когда в последний раз получали обновление
+        let currentSessionTime = 0; // Текущая сессия в секундах
+        let deviceIp = "";
+        let connectionCheckInterval = null;
+
+        // Форматирование времени из секунд в HH:MM:SS
+        function formatTime(seconds) {
+            if (seconds < 0) seconds = 0;
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (hours > 0) {
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            } else if (minutes > 0) {
+                return `00:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            } else {
+                return `00:00:${secs.toString().padStart(2, '0')}`;
+            }
+        }
+
+        // Обновление статуса устройства
+        function updateStatusUI(online) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const toggleBtn = document.getElementById('toggleRelay');
+            
+            isDeviceOnline = online;
+            
+            if (online) {
+                statusDot.className = 'online-dot';
+                statusText.textContent = 'ОНЛАЙН';
+                statusText.className = 'status-value online';
+                toggleBtn.disabled = false;
+            } else {
+                statusDot.className = 'offline-dot';
+                statusText.textContent = 'ОФЛАЙН';
+                statusText.className = 'status-value offline';
+                toggleBtn.disabled = true;
+            }
+        }
+
+        // Обновление отображения состояния реле
+        function updateRelayDisplay(state) {
+            const relayStatus = document.getElementById('relayStatus');
+            const button = document.getElementById('toggleRelay');
+            
+            isRelayOn = state;
+            
+            if (state) {
+                relayStatus.textContent = 'ВКЛЮЧЕНО';
+                relayStatus.className = 'status-value relay-on';
+                button.textContent = 'ВЫКЛЮЧИТЬ';
+                button.className = 'relay-button on';
+            } else {
+                relayStatus.textContent = 'ВЫКЛЮЧЕНО';
+                relayStatus.className = 'status-value relay-off';
+                button.textContent = 'ВКЛЮЧИТЬ';
+                button.className = 'relay-button off';
+            }
+        }
+
+        // Управление реле
+        async function toggleRelay() {
+            if (!isDeviceOnline) {
+                alert('Устройство недоступно!');
+                return;
+            }
+            
+            try {
+                const newState = !isRelayOn;
+                await db.ref('/socket1/relayState').set(newState);
+                console.log('Переключение реле на:', newState);
+                
+                // Принудительно запрашиваем обновление статуса
+                checkDeviceStatus();
+            } catch (error) {
+                console.error('Ошибка переключения:', error);
+                alert('Ошибка переключения!');
+            }
+        }
+
+        // Проверка статуса устройства
+        function checkDeviceStatus() {
+            const now = Date.now();
+            const timeDiff = now - lastUpdateTime;
+            
+            console.log('Проверка статуса. Разница:', timeDiff, 'мс');
+            
+            // Обновляем время последнего обновления
+            const lastUpdateElement = document.getElementById('lastUpdate');
+            if (timeDiff < 60000) {
+                lastUpdateElement.textContent = `${Math.floor(timeDiff/1000)} сек назад`;
+            } else if (timeDiff < 3600000) {
+                lastUpdateElement.textContent = `${Math.floor(timeDiff/60000)} мин назад`;
+            } else {
+                lastUpdateElement.textContent = `${Math.floor(timeDiff/3600000)} ч назад`;
+            }
+            
+            // Проверяем статус соединения
+            if (timeDiff < 15000) { // Меньше 15 секунд
+                updateStatusUI(true);
+            } else if (timeDiff < 30000) { // Меньше 30 секунд
+                updateStatusUI(true);
+            } else {
+                updateStatusUI(false);
+            }
+        }
+
+        // Обновление всех отображений
+        function updateDisplays() {
+            // Текущая сессия
+            const sessionElement = document.getElementById('currentSession');
+            sessionElement.textContent = formatTime(currentSessionTime);
+            
+            // Время работы устройства
+            const uptimeElement = document.getElementById('deviceUptime');
+            uptimeElement.textContent = lastDeviceUptime;
+            
+            // Проверяем статус устройства
+            checkDeviceStatus();
+        }
+
+        // Обновление IP адреса
+        function updateIpDisplay(ip) {
+            const element = document.getElementById('deviceIp');
+            if (ip) {
+                element.textContent = `IP: ${ip}`;
+                deviceIp = ip;
+            }
+        }
+
+        // Принудительная проверка статуса
+        function forceCheckStatus() {
+            console.log('Принудительная проверка статуса');
+            // Запрашиваем актуальные данные
+            db.ref('/socket1/deviceUptime').once('value').then((snapshot) => {
+                const uptime = snapshot.val();
+                if (uptime !== null) {
+                    lastDeviceUptime = uptime;
+                    lastUpdateTime = Date.now();
+                    updateDisplays();
+                }
+            });
+        }
+
+        // Переключение темы
+        function toggleTheme() {
+            const isDark = !document.body.classList.contains("dark-theme");
+            const theme = isDark ? 'dark' : 'light';
+            localStorage.setItem('socket_theme', theme);
+            applyTheme(theme);
+        }
+
+        // Применение темы
+        function applyTheme(theme) {
+            const isDark = theme === 'dark';
+            document.body.classList.toggle('dark-theme', isDark);
+            document.getElementById('themeToggle').textContent = isDark ? "☀️" : "🌙";
+        }
+
+        // Инициализация приложения
+        function initialize() {
+            console.log('Инициализация приложения...');
+            
+            // Применяем тему
+            const savedTheme = localStorage.getItem('socket_theme') || 'light';
+            applyTheme(savedTheme);
+            
+            // Настройка слушателей Firebase
+            
+            // 1. Слушатель состояния реле
+            db.ref('/socket1/relayState').on('value', (snapshot) => {
+                const state = snapshot.val();
+                console.log('Состояние реле:', state);
+                updateRelayDisplay(state === true);
+            });
+            
+            // 2. Слушатель текущей сессии
+            db.ref('/socket1/currentSession').on('value', (snapshot) => {
+                const time = snapshot.val();
+                currentSessionTime = time || 0;
+                console.log('Текущая сессия:', currentSessionTime, 'сек');
+                updateDisplays();
+            });
+            
+            // 3. Слушатель времени работы устройства
+            db.ref('/socket1/deviceUptime').on('value', (snapshot) => {
+                const uptime = snapshot.val();
+                if (uptime !== null) {
+                    lastDeviceUptime = uptime;
+                    lastUpdateTime = Date.now(); // Запоминаем когда получили обновление
+                    console.log('Время работы устройства:', uptime, 'сек');
+                    updateDisplays();
+                }
+            });
+            
+            // 4. Слушатель IP адреса
+            db.ref('/socket1/ip').on('value', (snapshot) => {
+                const ip = snapshot.val();
+                if (ip) {
+                    console.log('IP устройства:', ip);
+                    updateIpDisplay(ip);
+                }
+            });
+            
+            // Настройка обработчиков событий
+            document.getElementById('toggleRelay').addEventListener('click', toggleRelay);
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('forceRefresh').addEventListener('click', forceCheckStatus);
+            
+            // Проверяем статус каждую секунду
+            connectionCheckInterval = setInterval(checkDeviceStatus, 1000);
+            
+            // Обновляем отображение сессии каждую секунду
+            setInterval(updateDisplays, 1000);
+            
+            // Начальная проверка
+            forceCheckStatus();
+            
+            console.log('Приложение готово');
+        }
+
+        // Запуск приложения
+        document.addEventListener('DOMContentLoaded', initialize);
+    </script>
+</body>
+</html>
